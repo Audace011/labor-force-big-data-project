@@ -9,19 +9,36 @@ from dotenv import load_dotenv
 load_dotenv()  # loads variables from a .env file in the project root
 
 # --- Database ---
-DB_HOST = os.getenv("DB_HOST", "localhost")
-DB_PORT = os.getenv("DB_PORT", "5432")
-DB_NAME = os.getenv("DB_NAME", "labor_force_db")
-DB_USER = os.getenv("DB_USER", "postgres")
-DB_PASSWORD = os.getenv("DB_PASSWORD", "")
+# Two ways to configure the database connection:
+#   1. Set DATABASE_URL directly (used for hosted Postgres like Neon/Supabase —
+#      they give you a ready-made connection string)
+#   2. Or set the individual DB_HOST / DB_PORT / DB_NAME / DB_USER / DB_PASSWORD
+#      fields (used for local PostgreSQL)
+# DATABASE_URL takes priority if both are present.
 
-# URL-encode user/password since they may contain special characters like '@'
-_DB_USER_ENC = quote_plus(DB_USER)
-_DB_PASSWORD_ENC = quote_plus(DB_PASSWORD)
+_env_database_url = os.getenv("DATABASE_URL")
 
-DATABASE_URL = (
-    f"postgresql+psycopg2://{_DB_USER_ENC}:{_DB_PASSWORD_ENC}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
-)
+if _env_database_url:
+    # Neon/hosted connection strings start with "postgresql://" — SQLAlchemy
+    # needs the "+psycopg2" driver suffix added for this project's setup.
+    if _env_database_url.startswith("postgresql://"):
+        DATABASE_URL = _env_database_url.replace("postgresql://", "postgresql+psycopg2://", 1)
+    else:
+        DATABASE_URL = _env_database_url
+else:
+    DB_HOST = os.getenv("DB_HOST", "localhost")
+    DB_PORT = os.getenv("DB_PORT", "5432")
+    DB_NAME = os.getenv("DB_NAME", "labor_force_db")
+    DB_USER = os.getenv("DB_USER", "postgres")
+    DB_PASSWORD = os.getenv("DB_PASSWORD", "")
+
+    # URL-encode user/password since they may contain special characters like '@'
+    _DB_USER_ENC = quote_plus(DB_USER)
+    _DB_PASSWORD_ENC = quote_plus(DB_PASSWORD)
+
+    DATABASE_URL = (
+        f"postgresql+psycopg2://{_DB_USER_ENC}:{_DB_PASSWORD_ENC}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
+    )
 
 # --- World Bank API ---
 WB_INDICATOR = os.getenv("WB_INDICATOR", "SL.TLF.CACT.ZS")
